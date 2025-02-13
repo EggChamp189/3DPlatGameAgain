@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using static UnityEditor.SceneView;
+using UnityEngine.InputSystem.XR;
 
 public class PlayerManagerScript : MonoBehaviour
 {
@@ -19,8 +21,14 @@ public class PlayerManagerScript : MonoBehaviour
     public LayerMask whatIsGround;
     public bool grounded;
 
+    [Header("Animation")]
+    public Animator anim;
+    bool isWalking = false;
+    bool wasWalkingLastFrame = false;
+
     [Header("Dependencies")]
     public Transform orientation;
+    public Transform cam;
 
     float hInput;
     float vInput;
@@ -55,6 +63,26 @@ public class PlayerManagerScript : MonoBehaviour
         // record the movement of the player
         hInput = Input.GetAxisRaw("Horizontal");
         vInput = Input.GetAxisRaw("Vertical");
+
+        // if the player did an input, then they are walking
+        if ((orientation.forward * vInput + orientation.right * hInput).magnitude > 0)
+            isWalking = true;
+        else
+            isWalking = false;
+
+        // this happens if this is the frame the player started walking
+        if (!wasWalkingLastFrame && isWalking) {
+            wasWalkingLastFrame = true;
+            anim.SetTrigger("WalkStart");
+            anim.SetBool("Walking", true);
+        }
+        // this happens if this is the frame the player stopped walking
+        else if (wasWalkingLastFrame && !isWalking)
+        {
+            wasWalkingLastFrame = false;
+            anim.SetTrigger("WalkEnd");
+            anim.SetBool("Walking", false);
+        }
 
         // jump if ready to jump again
         if (Input.GetKey(KeyCode.Space) && readyToJump && grounded)
@@ -100,10 +128,29 @@ public class PlayerManagerScript : MonoBehaviour
         // calculate the direction and force the player wants to move in
         moveDirection = orientation.forward * vInput + orientation.right * hInput;
 
+        // get angle of movement direction in order to seperate the orientation/camera rotation from the movement controls
+        float moveAngle = Mathf.Atan2(hInput, vInput) * Mathf.Rad2Deg;
+
         // different movement based on whether or not the player is grounded
-        if(grounded)
+        if (grounded)
+        {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
+
+        }
         else if (!grounded)
+        {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
+
+        }
+
+        if (moveDirection.magnitude != 0)
+        {
+            // this part of the script also was interpretted from this: https://discussions.unity.com/t/third-person-camera-movement-script/783511/1
+
+            // should rotate the player in the direction they want to move when the orientation rotates, while not needing to face forward to move in the correct direction.
+            // THIS IS IT!!!! MULTIPLYING THE ROTATION OF THE ANGLE OF THE MOVEMENT 2D VECTOR WITH THE ORIENTATION THAT MATCHES THE CAMERA'S ROTATION ALLOWS ME TO GET THE HAT IN TIME 3RD PERSON CAMERA!!!!!!! HAHAHAHAHHAVIHEROVGIU[EWHBOV;ERW i WIN!!!!!!1
+            transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, moveAngle, 0) * orientation.rotation, 0.15f);
+        }
+
     }
 }
