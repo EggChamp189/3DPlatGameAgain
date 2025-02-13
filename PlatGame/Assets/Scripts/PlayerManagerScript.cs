@@ -1,7 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using static UnityEditor.SceneView;
-using UnityEngine.InputSystem.XR;
 
 public class PlayerManagerScript : MonoBehaviour
 {
