@@ -21,8 +21,6 @@ public class PlayerManagerScript : MonoBehaviour
 
     [Header("Animation")]
     public Animator anim;
-    bool isWalking = false;
-    bool wasWalkingLastFrame = false;
 
     [Header("Dependencies")]
     public Transform orientation;
@@ -31,7 +29,16 @@ public class PlayerManagerScript : MonoBehaviour
     float hInput;
     float vInput;
     Vector3 moveDirection;
-    Rigidbody rb;
+    Rigidbody rb; 
+    
+    public MovementState state = MovementState.idle;
+    public enum MovementState
+    {
+        idle,
+        air,
+        walking,
+        sprinting
+    }
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private void Start()
@@ -48,8 +55,10 @@ public class PlayerManagerScript : MonoBehaviour
         // check slightly below the player if they are close enough to a ground layer object
         grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
         UpdateAllInputs();
+        StateHandler();
         SpeedControl();
     }
+
 
     private void FixedUpdate()
     {
@@ -62,25 +71,8 @@ public class PlayerManagerScript : MonoBehaviour
         hInput = Input.GetAxisRaw("Horizontal");
         vInput = Input.GetAxisRaw("Vertical");
 
-        // if the player did an input, then they are walking
-        if ((orientation.forward * vInput + orientation.right * hInput).magnitude > 0)
-            isWalking = true;
-        else
-            isWalking = false;
-
-        // this happens if this is the frame the player started walking
-        if (!wasWalkingLastFrame && isWalking) {
-            wasWalkingLastFrame = true;
-            anim.SetTrigger("WalkStart");
-            anim.SetBool("Walking", true);
-        }
-        // this happens if this is the frame the player stopped walking
-        else if (wasWalkingLastFrame && !isWalking)
-        {
-            wasWalkingLastFrame = false;
-            anim.SetTrigger("WalkEnd");
-            anim.SetBool("Walking", false);
-        }
+        // calculate the direction and force the player wants to move in and record it 
+        moveDirection = orientation.forward * vInput + orientation.right * hInput;
 
         // jump if ready to jump again
         if (Input.GetKey(KeyCode.Space) && readyToJump && grounded)
@@ -91,6 +83,56 @@ public class PlayerManagerScript : MonoBehaviour
 
             // anything that happens after jumping happens in this function, which is called after jump cooldown
             Invoke(nameof(ResetJump), jumpCooldown);
+        }
+    }
+
+    // update the movement state based on what the player is doing.
+    private void StateHandler()
+    {
+        // check if the player gave any movement inputs 
+        if (moveDirection.magnitude != 0)
+        {
+            // if pressing the run key, change the move speed
+            if (Input.GetKey(KeyCode.LeftShift))
+            {
+                moveSpeed = sprintSpeed;
+                state = MovementState.sprinting;
+            }
+            else
+            {
+                moveSpeed = walkSpeed;
+                state = MovementState.walking;
+            }
+        }
+        // if they are not on the ground, they are idling in the air
+        else if (!grounded) 
+        {
+            state = MovementState.air;
+        }
+        // if they are on the ground, they are idling on the ground lol
+        else
+        {
+            state = MovementState.idle;
+        }
+
+
+        // update the animation float accordingly
+        switch (state) {
+            case MovementState.idle:
+                anim.SetFloat("Speed", 0);
+                break;
+            case MovementState.air:
+                anim.SetFloat("Speed", 0);
+                break;
+            case MovementState.walking:
+                anim.SetFloat("Speed", 1);
+                break;
+            case MovementState.sprinting:
+                anim.SetFloat("Speed", 2);
+                break;
+            default:
+                anim.SetFloat("Speed", 0);
+                break;
         }
     }
 
@@ -123,8 +165,6 @@ public class PlayerManagerScript : MonoBehaviour
     }
 
     void MovePlayer() {
-        // calculate the direction and force the player wants to move in
-        moveDirection = orientation.forward * vInput + orientation.right * hInput;
 
         // get angle of movement direction in order to seperate the orientation/camera rotation from the movement controls
         float moveAngle = Mathf.Atan2(hInput, vInput) * Mathf.Rad2Deg;
