@@ -3,6 +3,9 @@ using UnityEngine.EventSystems;
 
 public class PlayerManagerScript : MonoBehaviour
 {
+    [Header("Stats")]
+    public float damage;
+
     [Header("Movement")]
     private float moveSpeed;
     public float walkSpeed;
@@ -25,6 +28,7 @@ public class PlayerManagerScript : MonoBehaviour
     [Header("Dependencies")]
     public Transform orientation;
     public Transform cam;
+    public ObligatoryScriptableObject scriptableObject;
 
     float hInput;
     float vInput;
@@ -47,6 +51,7 @@ public class PlayerManagerScript : MonoBehaviour
         rb.freezeRotation = true;
         moveSpeed = walkSpeed;
         readyToJump = true;
+        damage = scriptableObject.damage;
     }
 
     // Update is called once per frame
@@ -74,6 +79,12 @@ public class PlayerManagerScript : MonoBehaviour
         // calculate the direction and force the player wants to move in and record it 
         moveDirection = orientation.forward * vInput + orientation.right * hInput;
 
+        // reset character position if you press R
+        if (Input.GetKey(KeyCode.R))
+        {
+            transform.position = new Vector3(0, 2, 0);
+            rb.linearVelocity = Vector3.zero;
+        }
         // jump if ready to jump again
         if (Input.GetKey(KeyCode.Space) && readyToJump && grounded)
         {
@@ -113,6 +124,8 @@ public class PlayerManagerScript : MonoBehaviour
         else
         {
             state = MovementState.idle;
+            // slow player's veloctity if they are idling on the gorund
+            rb.linearVelocity *= 0.99f;
         }
 
 
