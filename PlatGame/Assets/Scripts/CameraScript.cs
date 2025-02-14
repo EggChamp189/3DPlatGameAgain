@@ -14,7 +14,8 @@ public class CameraScript : MonoBehaviour
     public float distance = 10.0f;
     private float currentX = 0.0f;
     private float currentY = 0.0f;
-    public float sensivity = 4.0f;
+    public float sensivityX = 4.0f;
+    public float sensivityY = 4.0f;
     bool mouseLocked = true;
 
     private void Start()
@@ -27,8 +28,8 @@ public class CameraScript : MonoBehaviour
     void LateUpdate()
     {
         // you have to subtract the x, not add it like the tutorial says (for my camera movement prefrences)
-        currentX -= Input.GetAxis("Mouse X") * sensivity * Time.deltaTime;
-        currentY += Input.GetAxis("Mouse Y") * sensivity * Time.deltaTime;
+        currentX -= Input.GetAxis("Mouse X") * sensivityX * Time.deltaTime;
+        currentY += Input.GetAxis("Mouse Y") * sensivityY * Time.deltaTime;
 
         // clamp the y so the camera doesn't get fucked up. edit the min and max variables if you want a greater range of camera
         currentY = Mathf.Clamp(currentY, YMinimum, YMaximum);
