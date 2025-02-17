@@ -2,12 +2,12 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
 public class PlayerManagerScript : MonoBehaviour
 {
     [Header("General")]
     public float damage;
-    bool attackingThisFrame = false;
     bool isDoingSomething = false;
 
     [Header("Movement")]
@@ -290,5 +290,17 @@ public class PlayerManagerScript : MonoBehaviour
             transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.Euler(0, moveAngle, 0) * orientation.rotation, 0.15f);
         }
 
+    }
+
+    public void GetHit()
+    {
+        SceneManager.LoadScene("GameScene");
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.collider.CompareTag("Enemy")) {
+            GetHit();
+        }
     }
 }

@@ -12,10 +12,14 @@ public class CameraScript : MonoBehaviour
     public Transform Player;
 
     public float distance = 10.0f;
+    public float scrollSpeed = 2.0f;
+
     private float currentX = 0.0f;
     private float currentY = 0.0f;
+
     public float sensivityX = 4.0f;
     public float sensivityY = 4.0f;
+
     bool mouseLocked = true;
 
     private void Start()
@@ -27,6 +31,12 @@ public class CameraScript : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
+        if (Input.GetAxis("Mouse ScrollWheel") != 0) {
+            distance += Input.GetAxis("Mouse ScrollWheel") * scrollSpeed;
+            distance = Mathf.Clamp(distance, 4f, 15f);
+        }
+
+
         // you have to subtract the x, not add it like the tutorial says (for my camera movement prefrences)
         currentX -= Input.GetAxis("Mouse X") * sensivityX * Time.deltaTime;
         currentY += Input.GetAxis("Mouse Y") * sensivityY * Time.deltaTime;
