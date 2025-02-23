@@ -199,6 +199,7 @@ GameObject:
   - component: {fileID: 6836556466655795446}
   - component: {fileID: -2085246132955597095}
   - component: {fileID: -810698003501791946}
+  - component: {fileID: 1432771427629627486}
   m_Layer: 7
   m_Name: Slime_03
   m_TagString: Enemy
@@ -235,6 +236,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7f9321fe430fc6246b45fbcc247abe3c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  whatIsGround:
+    serializedVersion: 2
+    m_Bits: 8
   healthRemaining: 0
 --- !u!135 &-810698003501791946
 SphereCollider:
@@ -257,6 +261,33 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.34602723
   m_Center: {x: 0, y: 0.3151091, z: 0}
+--- !u!54 &1432771427629627486
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6173172085731050060}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 0
 --- !u!1 &6492255836270218599
 GameObject:
   m_ObjectHideFlags: 0

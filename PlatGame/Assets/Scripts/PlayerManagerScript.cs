@@ -1,20 +1,31 @@
 using NUnit.Framework;
+using System.Collections;
 using System.Collections.Generic;
+using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class PlayerManagerScript : MonoBehaviour
 {
     [Header("General")]
-    public float damage;
+    public string thisLevel = "LevelOne";
+    public string nextLevel = "LevelOne";
+    public int livesLeft;
+    public bool isInvulnerable = false;
     bool isDoingSomething = false;
+    static bool collectedCoinYet = false;
+    public static int coinsCollected = 0;
 
     [Header("Movement")]
     private float moveSpeed;
     public float walkSpeed;
     public float sprintSpeed;
     private int speedNum;
+    private bool fellOff = false;
+    public float lowestYLevel;
 
     [Header("Jumping")]
     public float jumpForce;
@@ -24,7 +35,7 @@ public class PlayerManagerScript : MonoBehaviour
 
     [Header("Ground Check")]
     public float playerHeight;
-    public LayerMask whatIsGround;
+    public LayerMask[] whatIsGround;
     public bool grounded;
 
     [Header("Animation")]
@@ -35,11 +46,15 @@ public class PlayerManagerScript : MonoBehaviour
     [Header("Dependencies")]
     public Transform orientation;
     public Transform cam;
-    public ObligatoryScriptableObject scriptableObject;
+
+    public Image lifeCounter;
+    public Sprite[] sprites = new Sprite[3];
+    public TMP_Text text;
 
     float hInput;
     float vInput;
-    Vector3 moveDirection;
+    [HideInInspector] // the movedirection is only public so enemies can give it a reversed hit effect when they are hit by this.
+    public Vector3 moveDirection;
     Rigidbody rb; 
     
     public MovementState state = MovementState.idle;
@@ -58,21 +73,55 @@ public class PlayerManagerScript : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private void Start()
     {
+        collectedCoinYet = false;
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
         moveSpeed = walkSpeed;
         readyToJump = true;
-        damage = scriptableObject.damage;
+        livesLeft = PlayerData.livesRemaining;
+        UpdateScore(0);
+        if (livesLeft <= 0)
+        {
+            MenuScript.ChangeData(2, coinsCollected);
+            PlayerData.livesRemaining = 3;
+            coinsCollected = 0;
+            SceneManager.LoadScene("MainMenu");
+            return;
+        }
+        lifeCounter.sprite = sprites[livesLeft - 1];
     }
 
     // Update is called once per frame
     void Update()
     {
         // check slightly below the player if they are close enough to a ground layer object
-        grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, whatIsGround);
+        grounded = false;
+        foreach (LayerMask layer in whatIsGround) {
+            if (Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.2f, layer))
+            {
+                // don't ground the player if they are trying to do a spin attack boost
+                if (layer == whatIsGround[1] && state == MovementState.fallAttacking)
+                    break;
+                grounded = true;
+                break;
+            }
+        }
+
+        // if the player is actively attacking, they should be invulnerable so their enemy doesn't accidentally hit them.
+        //isInvulnerable = (state == MovementState.attacking || state == MovementState.moveAttacking || state == MovementState.fallAttacking);
+
+        // keep the fall attacking state until they touch the ground again
+        if (grounded && state == MovementState.fallAttacking) {
+            DoneAttacking();
+        }
 
         UpdateAllInputs();
-        StateHandler();
+
+        if (!(state == MovementState.fallAttacking))
+        {
+            moveSpeed = sprintSpeed;
+            StateHandler();
+        }
         if (!isDoingSomething)
         {
             SpeedControl();
@@ -96,11 +145,10 @@ public class PlayerManagerScript : MonoBehaviour
             // calculate the direction and force the player wants to move in and record it 
             moveDirection = orientation.forward * vInput + orientation.right * hInput;
 
-        // reset character position if you press R
-        if (Input.GetKey(KeyCode.R) && !isDoingSomething)
+        if (transform.position.y <= lowestYLevel && !fellOff)
         {
-            transform.position = new Vector3(0, 2, 0);
-            rb.linearVelocity = Vector3.zero;
+            StartCoroutine(GetHit(thisLevel));
+            fellOff = true;
         }
         // jump if ready to jump again
         if (Input.GetKey(KeyCode.Space) && readyToJump && grounded && !isDoingSomething)
@@ -123,6 +171,7 @@ public class PlayerManagerScript : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Mouse0)) 
             {
                 isDoingSomething = true;
+                isInvulnerable = true;
                 // this won't completely halt movement, just make it so movement can't be added while the attack happens
                 if (grounded && state == MovementState.idle)
                 {
@@ -136,15 +185,16 @@ public class PlayerManagerScript : MonoBehaviour
                     // this will give the illusion of a lunge when the attack happens
                     state = MovementState.moveAttacking;
                     // get the exact length of the attack animation in case I end up changing it
-                    Invoke(nameof(DoneAttacking), attackAnimations[1].length);
+                    Invoke(nameof(DoneAttacking), attackAnimations[1].length * 1.2f);
                 }
                 else
                 {
                     // allow some movement, but will be very small
-                    moveSpeed /= 2;
+                    //moveSpeed /= 2;
                     state = MovementState.fallAttacking;
+                    isDoingSomething = false;
                     // get the exact length of the attack animation in case I end up changing it
-                    Invoke(nameof(DoneAttacking), attackAnimations[2].length);
+                    //Invoke(nameof(DoneAttacking), attackAnimations[2].length);
                 }
             }
             // check if the player gave any movement inputs 
@@ -191,7 +241,7 @@ public class PlayerManagerScript : MonoBehaviour
             else
             {
                 // slow player's veloctity if they are idling on the gorund
-                rb.linearVelocity *= 0.99f;
+                //rb.linearVelocity *= 0.99f;
                 anim.SetBool("Falling", false);
             }
 
@@ -245,6 +295,7 @@ public class PlayerManagerScript : MonoBehaviour
     // this function gets invoked when the player is finished the attack animation to reset the state
     private void DoneAttacking() {
         isDoingSomething = false;
+        isInvulnerable = false;
         // immediately update once done so that the state can be changed to normal before the next frame starts
         StateHandler();
     }
@@ -266,9 +317,6 @@ public class PlayerManagerScript : MonoBehaviour
 
         // get angle of movement direction in order to seperate the orientation/camera rotation from the movement controls
         float moveAngle = Mathf.Atan2(hInput, vInput) * Mathf.Rad2Deg;
-
-        if (isDoingSomething)
-            moveSpeed *= 0.95f;
 
         // different movement based on whether or not the player is grounded
         if (grounded)
@@ -292,15 +340,34 @@ public class PlayerManagerScript : MonoBehaviour
 
     }
 
-    public void GetHit()
-    {
-        SceneManager.LoadScene("GameScene");
+    void UpdateScore(int by) {
+        coinsCollected += by;
+        text.text = "Coins: " + coinsCollected.ToString();
     }
 
-    private void OnCollisionEnter(Collision collision)
+    private void OnTriggerEnter(Collider other)
     {
-        if (collision.collider.CompareTag("Enemy")) {
-            GetHit();
+        if (other.CompareTag("Coin") && !collectedCoinYet) {
+            UpdateScore(1);
+            collectedCoinYet = true;
+            Destroy(other.gameObject);
         }
+    }
+
+    public IEnumerator GetHit(string sceneName)
+    {
+        isDoingSomething = true;
+        isInvulnerable = true;
+        PlayerData.livesRemaining--;
+        if (collectedCoinYet)
+            UpdateScore(-1);
+        cam.GetComponent<Animator>().SetTrigger("Exit");
+        yield return new WaitForSeconds(cam.GetComponent<CameraScript>().exitClip.length * 0.8f);
+        SceneManager.LoadScene(sceneName);
+    }
+
+    public IEnumerator ChangeVelocity(Vector3 newVelocity, float time) {
+        yield return new WaitForSeconds(time);
+        rb.linearVelocity = newVelocity;
     }
 }
