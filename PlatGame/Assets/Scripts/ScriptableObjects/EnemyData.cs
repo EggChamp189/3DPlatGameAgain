@@ -7,7 +7,6 @@ public class EnemyData : ScriptableObject
 {
     public List<GameObject> EnemiesToChoose;
     public List<Material> Materials;
-    public int health = 3;
 
     public GameObject SetupEnemy(Vector3 location) {
         GameObject newEnemy = Instantiate(EnemiesToChoose[Random.Range(0, EnemiesToChoose.Capacity)]);
@@ -18,7 +17,6 @@ public class EnemyData : ScriptableObject
         newEnemy.GetComponentInChildren<SkinnedMeshRenderer>().materials = materials;
 
         newEnemy.transform.position = location;
-        newEnemy.GetComponent<EnemyController>().healthRemaining = health;
         return newEnemy;
     }
 }

@@ -22,6 +22,8 @@ public class CameraScript : MonoBehaviour
 
     bool mouseLocked = true;
 
+    public AnimationClip exitClip;
+
     private void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
